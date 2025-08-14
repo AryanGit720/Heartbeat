@@ -1,0 +1,24 @@
+# Python cache and build files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.so
+
+# OS-specific files
+*.DS_Store
+
+# Environment and virtual environments
+.env
+.venv/
+venv/
+
+# Logs and reports
+logs/
+reports/
+
+# Uploaded or generated data
+data/uploads/
+data/app/
+data/raw/
+

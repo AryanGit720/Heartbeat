@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+  <h2>Your history</h2>
+  <p class="hint">Only this browser session’s analyses are shown. No personal data is stored.</p>
+
+  {% if items|length == 0 %}
+    <p class="hint">No analyses yet. <a href="/">Analyze a file</a> or <a href="/batch">run a batch</a>.</p>
+  {% else %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th><th>When</th><th>Filename</th><th>Primary</th><th>Confidence</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for it in items %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ it.created_at }}</td>
+            <td>{{ it.filename }}</td>
+            <td class="cap">{{ it.primary_prediction }}</td>
+            <td>{{ '%.2f'|format(it.confidence*100) }}%</td>
+            <td>
+              <a class="btn" href="/view/{{ it.id }}">View</a>
+              <a class="btn" href="/report/{{ it.id }}">PDF</a>
+              <form action="/history/delete/{{ it.id }}" method="post" style="display:inline;" onsubmit="return confirm('Delete this entry? This cannot be undone.');">
+                <button class="btn danger" type="submit">Delete</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

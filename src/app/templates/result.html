@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+  <div class="result-header">
+    <div>
+      <h2>Results for {{ filename }}</h2>
+      <div class="pred-summary">
+        <div class="pill">Primary: <strong>{{ primary_prediction }}</strong></div>
+        <div class="pill">Confidence: <strong>{{ confidence_pct }}%</strong></div>
+      </div>
+    </div>
+    <div class="btn-group">
+      {% if analysis_id %}<a class="btn" href="/report/{{ analysis_id }}">Download PDF</a>{% endif %}
+      <a class="btn" href="/">← Analyze another file</a>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card inner chart-card">
+      <h3>Class probabilities</h3>
+      <div class="chart-wrap">
+        <canvas id="probChart"></canvas>
+      </div>
+    </div>
+
+    <div class="card inner">
+      <h3>Waveform</h3>
+      <img class="media media-xl" alt="waveform" src="data:image/png;base64,{{ waveform_b64 }}" />
+      <h3 style="margin-top:16px;">Spectrogram</h3>
+      <img class="media media-xl" alt="spectrogram" src="data:image/png;base64,{{ spectrogram_b64 }}" />
+    </div>
+  </div>
+
+  <div class="card inner">
+    <h3>Segments ({{ seg_len }}s windows, hop {{ seg_hop }}s)</h3>
+    {% if highlight_segments and highlight_segments|length > 0 %}
+      <div class="alert info">Highlighted rows are likely abnormal segments.</div>
+    {% endif %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th><th>Start (s)</th><th>End (s)</th><th>Top label</th><th>Probabilities</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in segments %}
+            {% set highlight = 'highlight' if s.segment_idx in highlight_segments else '' %}
+            <tr class="{{ highlight }}">
+              <td>{{ s.segment_idx }}</td>
+              <td>{{ '%.2f'|format(s.start_sec) }}</td>
+              <td>{{ '%.2f'|format(s.end_sec) }}</td>
+              <td class="cap">{{ s.top_label }}</td>
+              <td class="prob-td">
+                {% for k, v in s.probs.items() %}
+                  <span class="kv"><span class="k">{{ k }}</span><span class="v">{{ '%.1f'|format(v*100) }}%</span></span>
+                {% endfor %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="disclaimer">
+    <strong>Medical disclaimer:</strong>
+    {{ disclaimer }}
+  </div>
+</div>
+
+<script>
+  (() => {
+    const chartLabels = {{ labels | tojson }};
+    const chartValues = {{ values | tojson }};
+
+    const ctx = document.getElementById('probChart').getContext('2d');
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: chartLabels,
+        datasets: [{
+          label: 'Probability',
+          data: chartValues,
+          backgroundColor: ['#1f77b4', '#d62728']
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: { duration: 0 },
+        animations: { x: { duration: 0 }, y: { duration: 0 } },
+        scales: { y: { beginAtZero: true, max: 1.0 } },
+        plugins: { legend: { display: false } }
+      }
+    });
+  })();
+</script>
+{% endblock %}

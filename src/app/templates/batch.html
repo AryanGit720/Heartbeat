@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+  <h2>Batch analysis</h2>
+  <p class="hint">Upload multiple WAV/MP3 files or a ZIP containing audio files. Max ~50 files recommended.</p>
+  {% if error %}
+    <div class="alert error">{{ error }}</div>
+  {% endif %}
+
+  <form id="batchForm" action="/batch/process" method="post" enctype="multipart/form-data" class="upload-form">
+    <div class="dropzone">
+      <p class="drop-text">Choose files (WAV/MP3) or a ZIP</p>
+      <input id="batchInput" type="file" name="files" accept=".wav,.mp3,.zip,audio/*" multiple required />
+    </div>
+    <div id="batchList" class="file-list hidden"></div>
+
+    <div class="form-row">
+      <button id="batchBtn" type="submit" class="btn primary" disabled>Run batch</button>
+    </div>
+  </form>
+</div>
+
+<script>
+  const input = document.getElementById('batchInput');
+  const list = document.getElementById('batchList');
+  const btn = document.getElementById('batchBtn');
+
+  function renderList(files) {
+    if (!files.length) { list.classList.add('hidden'); btn.disabled = true; return; }
+    list.innerHTML = '';
+    Array.from(files).forEach(f => {
+      const item = document.createElement('div');
+      item.className = 'file-item';
+      const mb = (f.size / (1024*1024)).toFixed(2);
+      item.textContent = `${f.name} (${mb} MB)`;
+      list.appendChild(item);
+    });
+    list.classList.remove('hidden');
+    btn.disabled = false;
+  }
+  input.addEventListener('change', e => renderList(input.files));
+</script>
+{% endblock %}

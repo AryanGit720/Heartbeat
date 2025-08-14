@@ -1,0 +1,11 @@
+.env
+.venv/
+venv/
+pycache/
+logs/
+reports/
+data/raw/
+data/processed/
+data/uploads/
+data/app/
+.DS_Store

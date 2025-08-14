@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+  <div class="result-header">
+    <h2>Batch results ({{ items|length }} files)</h2>
+    <div>
+      <a class="btn" href="/batch">← New batch</a>
+      {% if csv_url %}<a class="btn primary" href="{{ csv_url }}">Download CSV</a>{% endif %}
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th><th>Filename</th><th>Primary</th><th>Confidence</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for it in items %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ it.filename }}</td>
+            <td class="cap">{{ it.primary }}</td>
+            <td>{{ '%.2f'|format(it.confidence*100) }}%</td>
+            <td>
+              <a class="btn" href="/view/{{ it.id }}">View</a>
+              <a class="btn" href="/report/{{ it.id }}">PDF</a>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

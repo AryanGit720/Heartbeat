@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+  <h2>Upload heartbeat audio (WAV or MP3)</h2>
+  {% if error %}
+    <div class="alert error">{{ error }}</div>
+  {% endif %}
+
+  <form id="uploadForm" action="/predict" method="post" enctype="multipart/form-data" class="upload-form">
+    <div id="dropzone" class="dropzone">
+      <p class="drop-text">Drag & drop a file here, or click to choose</p>
+      <input id="fileInput" type="file" name="file" accept="audio/*" required />
+    </div>
+
+    <div id="fileMeta" class="file-meta hidden"></div>
+
+    <div class="form-row">
+      <button id="analyzeBtn" type="submit" class="btn primary" disabled>Analyze</button>
+      <p class="hint">Max size: {{ max_mb }} MB</p>
+    </div>
+
+    <div id="progressWrap" class="progress-wrap hidden">
+      <div class="progress">
+        <div id="progressBar" class="progress-bar" style="width:0%"></div>
+      </div>
+      <div id="progressText" class="progress-text">Uploading… 0%</div>
+    </div>
+
+    <div id="spinner" class="spinner hidden">
+      <div class="spinner-dot"></div>
+      <div>Analyzing… please wait</div>
+    </div>
+  </form>
+</div>
+
+<script>
+  const dropzone = document.getElementById('dropzone');
+  const input = document.getElementById('fileInput');
+  const form = document.getElementById('uploadForm');
+  const fileMeta = document.getElementById('fileMeta');
+  const progressWrap = document.getElementById('progressWrap');
+  const progressBar = document.getElementById('progressBar');
+  const progressText = document.getElementById('progressText');
+  const spinner = document.getElementById('spinner');
+  const analyzeBtn = document.getElementById('analyzeBtn');
+
+  function updateFileMeta(file) {
+    if (!file) { fileMeta.classList.add('hidden'); analyzeBtn.disabled = true; return; }
+    const mb = (file.size / (1024 * 1024)).toFixed(2);
+    fileMeta.textContent = `Selected: ${file.name} (${mb} MB)`;
+    fileMeta.classList.remove('hidden');
+    analyzeBtn.disabled = false;
+  }
+
+  dropzone.addEventListener('click', () => input.click());
+  dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag'); });
+  dropzone.addEventListener('dragleave', e => { e.preventDefault(); dropzone.classList.remove('drag'); });
+  dropzone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropzone.classList.remove('drag');
+    if (e.dataTransfer.files.length) {
+      input.files = e.dataTransfer.files;
+      updateFileMeta(input.files[0]);
+    }
+  });
+  input.addEventListener('change', e => {
+    if (input.files.length) updateFileMeta(input.files[0]);
+  });
+
+  form.addEventListener('submit', function(e) {
+    e.preventDefault();
+    if (!input.files.length) return;
+
+    const data = new FormData();
+    data.append('file', input.files[0]);
+
+    progressWrap.classList.remove('hidden');
+    spinner.classList.remove('hidden');
+    analyzeBtn.disabled = true;
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', '/predict', true);
+
+    if (xhr.upload) {
+      xhr.upload.onprogress = function (evt) {
+        if (evt.lengthComputable) {
+          const pct = Math.round((evt.loaded / evt.total) * 100);
+          progressBar.style.width = pct + '%';
+          progressText.textContent = `Uploading… ${pct}%`;
+        }
+      };
+    }
+
+    xhr.onreadystatechange = function () {
+      if (xhr.readyState === 4) {
+        document.open();
+        document.write(xhr.responseText);
+        document.close();
+      }
+    };
+
+    xhr.send(data);
+  });
+</script>
+{% endblock %}

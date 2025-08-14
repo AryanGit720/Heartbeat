@@ -1,0 +1,10 @@
+{
+  "labels": [
+    "abnormal_other",
+    "normal"
+  ],
+  "label_to_idx": {
+    "abnormal_other": 0,
+    "normal": 1
+  }
+}

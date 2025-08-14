@@ -1,0 +1,27 @@
+version: "3.9"
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: heart-sound-app:latest
+    container_name: heart-sound-app
+    ports:
+      - "8000:8000"
+    environment:
+      # App configuration (override as needed)
+      MODEL_PATH: /app/models/tf_heart_sound/best.keras
+      LABEL_MAP_PATH: /app/data/metadata/label_map.json
+      FEATURE_NORM_PATH: /app/data/metadata/feature_norm.json
+      MAX_UPLOAD_MB: "20"
+      ABNORMAL_THRESHOLD: "0.6"
+      SECRET_KEY: "${SECRET_KEY}"
+      # Gunicorn settings
+      WEB_CONCURRENCY: "2"
+      TIMEOUT: "120"
+      LOG_LEVEL: "info"
+    volumes:
+      # Mount your local model and data into the container
+      - ./models:/app/models:ro
+      - ./data:/app/data
+    restart: unless-stopped

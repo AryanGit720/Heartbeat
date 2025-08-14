@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Heart Sound Classification</title>
+  <link rel="stylesheet" href="/static/style.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container nav">
+      <a class="brand" href="/">❤️ Heart Sound Classification</a>
+      <nav class="nav-links">
+        <a href="/">Analyze</a>
+        <a href="/batch">Batch</a>
+        <a href="/history">History</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="site-footer" style="color:#fff; ">
+    <div class="container">
+      <small >
+        &copy; 2025 • For education/research only - not a medical device. |
+        Contact: <a style="color:#4db8ff; text-decoration:none; margin:0 6px;" href="mailto:aryan09cc@gmail.com">aryan09cc@gmail.com</a> |
+        LinkedIn: <a style="color:#4db8ff; text-decoration:none; margin:0 6px;" href="https://www.linkedin.com/in/aryan-singh-b343b531a" target="_blank" rel="noopener noreferrer">Aryan Singh</a>
+      </small>
+    </div>
+  </footer>
+</body>
+</html>
