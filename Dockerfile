@@ -21,16 +21,16 @@ COPY requirements-prod.txt /app/requirements.txt
 RUN python -m pip install --upgrade pip setuptools wheel && \
     python -m pip install -r /app/requirements.txt
 
-# App code
+# Copy application code + model + metadata into image
 COPY src /app/src
-COPY start.sh /app/start.sh
-
-# Prepare dirs; usually mounted via volumes
-RUN mkdir -p /app/data /app/models
+COPY models /app/models
+COPY data/metadata /app/data/metadata
 
 # Healthcheck against /ready
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
   CMD curl -fsS http://localhost:8000/ready || exit 1
 
 EXPOSE 8000
-CMD ["/app/start.sh"]
+
+# Run gunicorn directly via bash (expands env vars like PORT)
+CMD ["/bin/bash", "-lc", "exec gunicorn -k uvicorn.workers.UvicornWorker -w ${WEB_CONCURRENCY:-1} -b 0.0.0.0:${PORT:-8000} --timeout ${TIMEOUT:-120} --graceful-timeout ${GRACEFUL_TIMEOUT:-120} --keep-alive ${KEEPALIVE:-5} --log-level ${LOG_LEVEL:-info} src.app.main:app"]
