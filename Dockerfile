@@ -35,10 +35,9 @@ COPY src /app/src
 COPY models /app/models
 COPY data/metadata /app/data/metadata
 
-# Pre-warm font cache (best-effort)
-RUN fc-cache -rv || true
-
-EXPOSE 8000
+# Expose the Space port (7860)
+EXPOSE 7860
 
 # Lighter startup: single-process Uvicorn (good for free CPU)
-CMD ["/bin/bash", "-lc", "exec python -m uvicorn src.app.main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 1"]
+# Bind to ${PORT} if set (HF sets it to 7860), otherwise default to 7860
+CMD ["/bin/bash", "-lc", "exec python -m uvicorn src.app.main:app --host 0.0.0.0 --port ${PORT:-7860} --workers 1"]
