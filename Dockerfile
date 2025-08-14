@@ -5,33 +5,40 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     TF_CPP_MIN_LOG_LEVEL=2 \
-    RUNTIME_DIR=/tmp/hsc
+    RUNTIME_DIR=/tmp/hsc \
+    HOME=/tmp/hsc \
+    MPLCONFIGDIR=/tmp/mplconfig \
+    XDG_CACHE_HOME=/tmp/xdg-cache
 
-# System deps for audio and healthchecks
+# System deps for audio, fonts, healthchecks
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     libsndfile1 \
     curl \
     bash \
+    fontconfig \
+    fonts-dejavu-core \
     && rm -rf /var/lib/apt/lists/*
+
+# Writable caches
+RUN mkdir -p /tmp/hsc /tmp/mplconfig /tmp/xdg-cache && chmod -R 777 /tmp/hsc /tmp/mplconfig /tmp/xdg-cache || true
 
 WORKDIR /app
 
-# Use lean production requirements (no Kaggle/PyTorch)
+# Lean production requirements (no Kaggle/PyTorch)
 COPY requirements-prod.txt /app/requirements.txt
 RUN python -m pip install --upgrade pip setuptools wheel && \
     python -m pip install -r /app/requirements.txt
 
-# Copy application code + model + metadata into image
+# Copy application code + model + metadata
 COPY src /app/src
 COPY models /app/models
 COPY data/metadata /app/data/metadata
 
-# Healthcheck against /ready
-HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-  CMD curl -fsS http://localhost:8000/ready || exit 1
+# Pre-warm font cache (best-effort)
+RUN fc-cache -rv || true
 
 EXPOSE 8000
 
-# Run gunicorn directly via bash (expands env vars like PORT)
-CMD ["/bin/bash", "-lc", "exec gunicorn -k uvicorn.workers.UvicornWorker -w ${WEB_CONCURRENCY:-1} -b 0.0.0.0:${PORT:-8000} --timeout ${TIMEOUT:-120} --graceful-timeout ${GRACEFUL_TIMEOUT:-120} --keep-alive ${KEEPALIVE:-5} --log-level ${LOG_LEVEL:-warning} src.app.main:app"]
+# Lighter startup: single-process Uvicorn (good for free CPU)
+CMD ["/bin/bash", "-lc", "exec python -m uvicorn src.app.main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 1"]

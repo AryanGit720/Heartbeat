@@ -5,7 +5,7 @@ import csv
 import uuid
 import zipfile
 from pathlib import Path
-from typing import Dict, Any, List, Tuple
+from typing import Dict, List, Tuple, Optional, Any
 
 from fastapi import FastAPI, File, UploadFile, Request
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse, RedirectResponse
@@ -15,7 +15,6 @@ from pydantic import BaseModel
 from dotenv import load_dotenv
 from starlette.middleware.sessions import SessionMiddleware
 
-from src.inference.predict_tf import Predictor
 from src.inference.audio_utils import load_audio, render_waveform_base64, render_spectrogram_base64, SR
 from src.inference.report_utils import build_pdf
 from src.app.db import init_db, add_analysis, get_history, get_analysis, delete_analysis
@@ -29,14 +28,16 @@ RUNTIME_DIR = Path(os.getenv("RUNTIME_DIR", "/tmp/hsc"))
 UPLOAD_DIR = Path(os.getenv("UPLOAD_DIR", str(RUNTIME_DIR / "uploads")))
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
+# Model + metadata paths (baked into image at /app/...)
 MODEL_PATH = Path(os.getenv("MODEL_PATH", "models/tf_heart_sound/best.keras"))
 LABEL_MAP_PATH = Path(os.getenv("LABEL_MAP_PATH", "data/metadata/label_map.json"))
 NORM_PATH = Path(os.getenv("FEATURE_NORM_PATH", "data/metadata/feature_norm.json"))
+
 MAX_UPLOAD_MB = float(os.getenv("MAX_UPLOAD_MB", "20"))
 ABNORMAL_THRESHOLD = float(os.getenv("ABNORMAL_THRESHOLD", "0.6"))
 SECRET_KEY = os.getenv("SECRET_KEY", "change_me")
 
-app = FastAPI(title="Heart Sound Classification API", version="1.3.0")
+app = FastAPI(title="Heart Sound Classification API", version="1.4.0")
 app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
 
 # Static + templates
@@ -45,8 +46,19 @@ templates_dir = Path(__file__).resolve().parent / "templates"
 app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 templates = Jinja2Templates(directory=str(templates_dir))
 
-# Load predictor once
-predictor = Predictor(MODEL_PATH, LABEL_MAP_PATH, NORM_PATH, abnormal_threshold=ABNORMAL_THRESHOLD)
+# Lazy predictor (avoid loading TF at import time)
+_predictor: Optional[Any] = None
+
+def get_predictor():
+    global _predictor
+    if _predictor is None:
+        # Lazy import to avoid importing TensorFlow on module import
+        from src.inference.predict_tf import Predictor
+        _predictor = Predictor(
+            MODEL_PATH, LABEL_MAP_PATH, NORM_PATH,
+            abnormal_threshold=ABNORMAL_THRESHOLD
+        )
+    return _predictor
 
 class PredictionResponse(BaseModel):
     primary_prediction: str
@@ -57,6 +69,7 @@ class PredictionResponse(BaseModel):
 
 @app.on_event("startup")
 def _on_startup():
+    # Initialize DB in a writable directory
     init_db()
 
 def _get_sid(request: Request) -> str:
@@ -78,11 +91,8 @@ def health():
 
 @app.get("/ready", tags=["system"])
 def ready():
-    try:
-        _ = predictor.model  # ensure model is loaded
-        return {"status": "ready"}
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"status": "not_ready", "detail": str(e)})
+    # Report "warming" until the model is first loaded
+    return {"status": "ready" if _predictor is not None else "warming"}
 
 @app.get("/", response_class=HTMLResponse, tags=["ui"])
 def index(request: Request):
@@ -113,7 +123,7 @@ async def predict_ui(request: Request, file: UploadFile = File(...)):
         with open(temp_path, "wb") as f:
             f.write(raw)
 
-        # Predict
+        predictor = get_predictor()  # load on first use
         result = predictor.predict_file(temp_path)
 
         # Visuals
@@ -165,6 +175,7 @@ async def api_predict(file: UploadFile = File(...)):
     with open(temp_path, "wb") as f:
         f.write(raw)
 
+    predictor = get_predictor()
     result = predictor.predict_file(temp_path)
     return {
         "primary_prediction": result["record"]["primary_prediction"],
@@ -205,6 +216,7 @@ def view_analysis(request: Request, analysis_id: int):
     if not row:
         return templates.TemplateResponse("index.html", {"request": request, "error": "Analysis not found", "max_mb": MAX_UPLOAD_MB})
 
+    predictor = get_predictor()
     audio_path = Path(row.stored_path)
     result = predictor.predict_file(audio_path)
     y = load_audio(audio_path, sr=SR)
@@ -239,6 +251,7 @@ def pdf_report(analysis_id: int):
     if not row:
         return JSONResponse(status_code=404, content={"detail": "Analysis not found"})
 
+    predictor = get_predictor()
     audio_path = Path(row.stored_path)
     result = predictor.predict_file(audio_path)
     y = load_audio(audio_path, sr=SR)
@@ -257,7 +270,7 @@ def pdf_report(analysis_id: int):
         waveform_b64=wf_b64, spectrogram_b64=sp_b64,
         disclaimer=_disclaimer(),
     )
-    headers = {"Content-Disposition": f'attachment; filename="{Path(row.filename).stem}_report.pdf"'}
+    headers = {"Content-Disposition": f'attachment; filename=\"{Path(row.filename).stem}_report.pdf\""}
     return StreamingResponse(pdf_io, media_type="application/pdf", headers=headers)
 
 # ---------- Batch ----------
@@ -298,12 +311,10 @@ async def batch_process(request: Request, files: List[UploadFile] = File(...)):
         batch_dir = UPLOAD_DIR / f"batch_{uuid.uuid4().hex}"
         batch_dir.mkdir(parents=True, exist_ok=True)
 
-        # Gather files (expand zips)
         saved: List[Tuple[str, Path]] = []
         for f in files:
             if f.filename.lower().endswith(".zip"):
-                extracted = _extract_zip(f, batch_dir)
-                for p in extracted:
+                for p in _extract_zip(f, batch_dir):
                     saved.append((Path(p).name, p))
             else:
                 p = _save_upload(f, batch_dir)
@@ -312,11 +323,10 @@ async def batch_process(request: Request, files: List[UploadFile] = File(...)):
         if not saved:
             return templates.TemplateResponse("batch.html", {"request": request, "error": "No valid audio found in upload"})
 
-        # Limit for sanity
         saved = saved[:50]
 
-        items = []
-        ids = []
+        items, ids = [], []
+        predictor = get_predictor()
         for fname, apath in saved:
             result = predictor.predict_file(apath)
             analysis_id = add_analysis(sid, fname, str(apath), result)
@@ -337,8 +347,7 @@ async def batch_process(request: Request, files: List[UploadFile] = File(...)):
 def batch_csv(ids: str):
     from src.app.db import get_analysis as _get
     id_list = [int(x) for x in ids.split(",") if x.strip().isdigit()]
-    rows = [_get(i) for i in id_list]
-    rows = [r for r in rows if r]
+    rows = [_get(i) for i in id_list if _get(i)]
     def _stream():
         out = io.StringIO()
         w = csv.writer(out)

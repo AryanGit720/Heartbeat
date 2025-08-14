@@ -8,7 +8,6 @@ from typing import List, Optional
 from sqlalchemy import create_engine, Column, Integer, String, Float, Text, DateTime
 from sqlalchemy.orm import sessionmaker, declarative_base
 
-# Use /tmp by default so containers always have write access
 RUNTIME_DIR = Path(os.getenv("RUNTIME_DIR", "/tmp/hsc"))
 DB_PATH = Path(os.getenv("DB_PATH", str(RUNTIME_DIR / "app.db")))
 DB_DIR = DB_PATH.parent
