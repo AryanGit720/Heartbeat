@@ -1,4 +1,5 @@
 from __future__ import annotations
+import os
 import json
 from datetime import datetime
 from pathlib import Path
@@ -7,9 +8,10 @@ from typing import List, Optional
 from sqlalchemy import create_engine, Column, Integer, String, Float, Text, DateTime
 from sqlalchemy.orm import sessionmaker, declarative_base
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-DB_DIR = PROJECT_ROOT / "data" / "app"
-DB_PATH = DB_DIR / "app.db"
+# Use /tmp by default so containers always have write access
+RUNTIME_DIR = Path(os.getenv("RUNTIME_DIR", "/tmp/hsc"))
+DB_PATH = Path(os.getenv("DB_PATH", str(RUNTIME_DIR / "app.db")))
+DB_DIR = DB_PATH.parent
 DB_URL = f"sqlite:///{DB_PATH}"
 
 engine = create_engine(DB_URL, connect_args={"check_same_thread": False})
@@ -67,10 +69,6 @@ def get_analysis(analysis_id: int) -> Optional[Analysis]:
         return db.get(Analysis, analysis_id)
 
 def delete_analysis(analysis_id: int, session_id: Optional[str] = None, delete_file: bool = True) -> bool:
-    """
-    Delete an analysis row (and file) if it exists and (optionally) belongs to session_id.
-    Returns True if deleted, False if not found or not allowed.
-    """
     with SessionLocal() as db:
         row = db.get(Analysis, analysis_id)
         if not row:

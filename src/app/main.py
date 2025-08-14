@@ -24,6 +24,11 @@ from src.app.db import init_db, add_analysis, get_history, get_analysis, delete_
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 load_dotenv(PROJECT_ROOT / ".env")
 
+# Runtime-writable dirs (default to /tmp on containers)
+RUNTIME_DIR = Path(os.getenv("RUNTIME_DIR", "/tmp/hsc"))
+UPLOAD_DIR = Path(os.getenv("UPLOAD_DIR", str(RUNTIME_DIR / "uploads")))
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
 MODEL_PATH = Path(os.getenv("MODEL_PATH", "models/tf_heart_sound/best.keras"))
 LABEL_MAP_PATH = Path(os.getenv("LABEL_MAP_PATH", "data/metadata/label_map.json"))
 NORM_PATH = Path(os.getenv("FEATURE_NORM_PATH", "data/metadata/feature_norm.json"))
@@ -31,10 +36,7 @@ MAX_UPLOAD_MB = float(os.getenv("MAX_UPLOAD_MB", "20"))
 ABNORMAL_THRESHOLD = float(os.getenv("ABNORMAL_THRESHOLD", "0.6"))
 SECRET_KEY = os.getenv("SECRET_KEY", "change_me")
 
-UPLOAD_DIR = PROJECT_ROOT / "data" / "uploads"
-UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
-
-app = FastAPI(title="Heart Sound Classification API", version="1.2.0")
+app = FastAPI(title="Heart Sound Classification API", version="1.3.0")
 app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
 
 # Static + templates
@@ -76,13 +78,11 @@ def health():
 
 @app.get("/ready", tags=["system"])
 def ready():
-    # Basic readiness: model loaded and env paths exist
     try:
-        _ = predictor.model  # ensures model is loaded
+        _ = predictor.model  # ensure model is loaded
         return {"status": "ready"}
     except Exception as e:
         return JSONResponse(status_code=500, content={"status": "not_ready", "detail": str(e)})
-
 
 @app.get("/", response_class=HTMLResponse, tags=["ui"])
 def index(request: Request):
@@ -255,7 +255,7 @@ def pdf_report(analysis_id: int):
         confidence=result["record"]["confidence"],
         labels=labels, values=values,
         waveform_b64=wf_b64, spectrogram_b64=sp_b64,
-        disclaimer="This tool is for educational and research purposes only and is not a medical device. Do not use it for diagnosis or treatment. Consult a qualified healthcare professional.",
+        disclaimer=_disclaimer(),
     )
     headers = {"Content-Disposition": f'attachment; filename="{Path(row.filename).stem}_report.pdf"'}
     return StreamingResponse(pdf_io, media_type="application/pdf", headers=headers)
