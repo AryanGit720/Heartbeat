@@ -270,7 +270,7 @@ def pdf_report(analysis_id: int):
         waveform_b64=wf_b64, spectrogram_b64=sp_b64,
         disclaimer=_disclaimer(),
     )
-    headers = {"Content-Disposition": f'attachment; filename=\"{Path(row.filename).stem}_report.pdf\""}
+    headers = {"Content-Disposition": f'attachment; filename="{Path(row.filename).stem}_report.pdf"'}
     return StreamingResponse(pdf_io, media_type="application/pdf", headers=headers)
 
 # ---------- Batch ----------
