@@ -13,6 +13,8 @@ short_description: "Classify heart sound (phonocardiogram) recordings — normal
 
 End‑to‑end system that detects cardiac abnormalities from heart sound recordings. It trains a CNN on log‑mel spectrograms and serves predictions via a FastAPI web app with waveform/spectrogram visuals, class probabilities, batch analysis, PDF reports, and session history.
 
+![🤗 Spaces-Live-blue](https://github.com/user-attachments/assets/d341fcf6-8abf-4940-a2d8-80551938bdf1)<svg xmlns="http://www.w3.org/2000/svg" width="96" height="20" role="img" aria-label="🤗 Spaces: Live"><title>🤗 Spaces: Live</title><linearGradient id="s" x2="0" y2="100%"><stop offset="0" stop-color="#bbb" stop-opacity=".1"/><stop offset="1" stop-opacity=".1"/></linearGradient><clipPath id="r"><rect width="96" height="20" rx="3" fill="#fff"/></clipPath><g clip-path="url(#r)"><rect width="63" height="20" fill="#555"/><rect x="63" width="33" height="20" fill="#007ec6"/><rect width="96" height="20" fill="url(#s)"/></g><g fill="#fff" text-anchor="middle" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" text-rendering="geometricPrecision" font-size="110"><text aria-hidden="true" x="325" y="150" fill="#010101" fill-opacity=".3" transform="scale(.1)" textLength="530">🤗 Spaces</text><text x="325" y="140" transform="scale(.1)" fill="#fff" textLength="530">🤗 Spaces</text><text aria-hidden="true" x="785" y="150" fill="#010101" fill-opacity=".3" transform="scale(.1)" textLength="230">Live</text><text x="785" y="140" transform="scale(.1)" fill="#fff" textLength="230">Live</text></g></svg>
+
 - Live demo (Hugging Face Spaces): https://aryanbaliyan-heart-sound-classifier.hf.space  
 - Code: https://github.com/AryanGit720/Heartbeat
 
@@ -107,4 +109,7 @@ uvicorn src.app.main:app --host 0.0.0.0 --port 8000
 - GitHub: https://github.com/AryanGit720/Heartbeat
 - Email: aryan09cc@gmail.com
 - LinkedIn: https://www.linkedin.com/in/aryan-singh-b343b531a
+
+
+
 
