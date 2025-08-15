@@ -75,10 +75,10 @@ Note: Model predicts two classes: `normal`, `abnormal_other`.
 - Git LFS (to fetch the model): https://git-lfs.com
 
 ### setup
-git clone https://github.com/AryanGit720/Heartbeat
-cd Heartbeat
-git lfs install
-git lfs pull  # fetches models/tf_heart_sound/best.keras
+- git clone https://github.com/AryanGit720/Heartbeat
+- cd Heartbeat
+- git lfs install
+- git lfs pull  # fetches models/tf_heart_sound/best.keras
 
 python -m venv .venv
 ### Windows
