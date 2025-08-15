@@ -77,9 +77,9 @@ git lfs install
 git lfs pull  # fetches models/tf_heart_sound/best.keras
 
 python -m venv .venv
-# Windows
+### Windows
 .venv\Scripts\activate
-# macOS/Linux
+### macOS/Linux
 source .venv/bin/activate
 
 python -m pip install --upgrade pip
