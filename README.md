@@ -4,7 +4,7 @@ emoji: "💓"
 colorFrom: "yellow"
 colorTo: "blue"
 sdk: "docker"
-pinned: false
+pinned: true
 license: "mit"
 short_description: "Classify heart sound (phonocardiogram) recordings — normal vs abnormal"
 ---
