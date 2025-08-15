@@ -1,0 +1,21 @@
+flowchart LR
+  U[User (Web/Mobile)] -->|Upload WAV/MP3/M4A| API[FastAPI /predict]
+  API --> P[Audio pipeline<br/>librosa: 4 kHz resample,<br/>5s windows (50% overlap),<br/>log‑mel spectrogram]
+  P --> M[TensorFlow CNN<br/>(best.keras)]
+  M --> S[Per‑segment probabilities]
+  S --> A[Aggregator<br/>(avg across segments)]
+  A --> R[Response: primary + confidence + distribution]
+  R --> UI[UI: waveform, spectrogram,<br/>probability bar chart, highlights]
+
+  subgraph Assets
+    LM[(label_map.json)]
+    FN[(feature_norm.json)]
+    MD[(best.keras)]
+  end
+
+  LM --> P
+  FN --> P
+  MD --> M
+
+  API --> DB[(SQLite in /tmp)]
+  API --> PDF[ReportLab PDF export]
