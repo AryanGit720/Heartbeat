@@ -1,0 +1,19 @@
+cff-version: 1.2.0
+title: "Heart Sound Classification (Heartbeat Anomaly Detection)"
+message: "If you use this software, please cite it as below."
+type: software
+authors:
+  - family-names: Singh
+    given-names: Aryan
+version: "1.0.0"
+date-released: "2025-08-14"
+license: MIT
+repository-code: "https://github.com/AryanGit720/Heartbeat"
+url: "https://aryanbaliyan-heart-sound-classifier.hf.space"
+keywords:
+  - heart sound
+  - phonocardiogram
+  - PCG
+  - audio classification
+  - TensorFlow
+  - FastAPI
